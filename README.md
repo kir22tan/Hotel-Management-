@@ -1,1 +1,3 @@
-# Hotel-Management-
+# Hotel-Management-System
+
+- Siddharth Gautam.
