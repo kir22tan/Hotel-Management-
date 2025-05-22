@@ -8,5 +8,7 @@ int main() {
     myHotel.bookRoom();
     std::cout << "Rooms available after booking: " << myHotel.getAvailableRooms() << std::endl;
 
+    std::cin.get();
+    
     return 0;
 }
