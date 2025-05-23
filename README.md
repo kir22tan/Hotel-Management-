@@ -1,3 +1,4 @@
+
 # 🏨 HOT-MAN - Hotel Reservation System | C++ 
 
 A terminal-based **Hotel Reservation System** built in C++ that allows users to:
@@ -7,6 +8,8 @@ A terminal-based **Hotel Reservation System** built in C++ that allows users to:
 - View available rooms
 - Manage room types and maintenance
 - Store all data in `.csv` files (no external databases needed)
+
+![image](https://github.com/user-attachments/assets/3d8aa13e-6270-420c-a222-d92ecaae1fa4)
 
 ---
 ## 📂 File Structure
