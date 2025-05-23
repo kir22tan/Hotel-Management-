@@ -1,323 +1,237 @@
+#pragma once
 #include "Room.h"
 #include "Utils.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <iomanip>
+#include <algorithm>
 #include <vector>
 
 using namespace std;
 
-Room::Room() : id(0), price(0.0), isBooked(false), isMaintenance(false) {}
+const string ROOMS_FILE = "data/rooms.csv";
+const string BOOKINGS_FILE = "data/bookings.csv";
+
+Room::Room() : id(0), type(""), price(0), isBooked(false), isMaintenance(false) {}
 
 Room::Room(int id, const string& type, double price, bool isBooked, bool isMaintenance)
     : id(id), type(type), price(price), isBooked(isBooked), isMaintenance(isMaintenance) {}
 
+void Room::loadRooms(vector<Room>& rooms) {
+    rooms.clear();
+    ifstream file(ROOMS_FILE);
+    if (!file) {
+        printRed("Cannot open " + ROOMS_FILE + "\n");
+        pressEnterToContinue();
+        return;
+    }
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string idStr, type, priceStr, bookedStr, maintStr;
+
+        if (!getline(ss, idStr, ',')) continue;
+        if (!getline(ss, type, ',')) continue;
+        if (!getline(ss, priceStr, ',')) continue;
+        if (!getline(ss, bookedStr, ',')) continue;
+        if (!getline(ss, maintStr, ',')) continue;
+
+        int id = stoi(idStr);
+        double price = stod(priceStr);
+        bool isBooked = (bookedStr == "1");
+        bool isMaintenance = (maintStr == "1");
+
+        rooms.emplace_back(id, type, price, isBooked, isMaintenance);
+    }
+    file.close();
+}
+
+void Room::saveRooms(const vector<Room>& rooms) {
+    ofstream file(ROOMS_FILE);
+    if (!file) {
+        printRed("Cannot open " + ROOMS_FILE + " for writing\n");
+        pressEnterToContinue();
+        return;
+    }
+    for (const auto& room : rooms) {
+        file << room.id << "," << room.type << "," << room.price << ","
+             << (room.isBooked ? "1" : "0") << "," << (room.isMaintenance ? "1" : "0") << "\n";
+    }
+    file.close();
+}
+
+void Room::updateBookingStatus(vector<Room>& rooms) {
+    ifstream file(BOOKINGS_FILE);
+    if (!file) {
+        printRed("Cannot open " + BOOKINGS_FILE + "\n");
+        pressEnterToContinue();
+        return;
+    }
+
+    // Reset bookings except maintenance rooms
+    for (auto& room : rooms) {
+        if (!room.isMaintenance)
+            room.isBooked = false;
+    }
+
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string bookingId, roomIdStr, guestName, checkIn, checkOut;
+
+        if (!getline(ss, bookingId, ',')) continue;
+        if (!getline(ss, roomIdStr, ',')) continue;
+        if (!getline(ss, guestName, ',')) continue;
+        if (!getline(ss, checkIn, ',')) continue;
+        if (!getline(ss, checkOut, ',')) continue;
+
+        int roomId = stoi(roomIdStr);
+
+        auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) {
+            return r.id == roomId;
+        });
+        if (it != rooms.end() && !it->isMaintenance) {
+            it->isBooked = true;
+        }
+    }
+    file.close();
+}
+
 void Room::addRoom() {
-    Room room;
+    vector<Room> rooms;
+    loadRooms(rooms);
 
-    printGreen("Enter Room ID: ");
-    cin >> room.id;
-    cin.ignore();
+    int id;
+    string type;
+    double price;
 
-    printGreen("Enter Room Type (Single/Double/Suite): ");
-    getline(cin, room.type);
+    cout << "Enter new room ID (4-digit): ";
+    cin >> id;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-    printGreen("Enter Price per Night: ");
-    cin >> room.price;
-    room.isBooked = false;
-    room.isMaintenance = false;
-
-    if (roomExists(room.id)) {
-        printRed("Room ID already exists!\n");
+    if (roomExists(id)) {
+        printRed("Room already exists.\n");
         pressEnterToContinue();
         return;
     }
 
-    ofstream fout("data/rooms.csv", ios::app);
-    if (!fout) {
-        printRed("Error opening rooms.csv for writing.\n");
-        pressEnterToContinue();
-        return;
-    }
+    cout << "Enter room type: ";
+    getline(cin, type);
 
-    fout << room.id << "," << room.type << "," << room.price << "," 
-         << (room.isBooked ? "1" : "0") << "," << (room.isMaintenance ? "1" : "0") << "\n";
-    fout.close();
+    cout << "Enter price: ";
+    cin >> price;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-    printGreen("Room added successfully!\n");
+    rooms.emplace_back(id, type, price, false, false);
+    saveRooms(rooms);
+
+    printGreen("Room added successfully.\n");
     pressEnterToContinue();
 }
 
 void Room::displayRooms() {
-    ifstream fin("data/rooms.csv");
-    if (!fin) {
-        printRed("No room records found.\n");
-        pressEnterToContinue();
-        return;
+    vector<Room> rooms;
+    loadRooms(rooms);
+    updateBookingStatus(rooms);
+
+    // Sort rooms by type alphabetically and then by price ascending
+    sort(rooms.begin(), rooms.end(), [](const Room& a, const Room& b) {
+        if (a.type == b.type)
+            return a.price < b.price;
+        return a.type < b.type;
+    });
+
+    printGreen("RoomID\tType\t\tPrice\tBooked\tMaintenance\n");
+    printGreen("-------------------------------------------------------\n");
+    for (const auto& room : rooms) {
+        printf("%04d\t%-10s\t%.2f\t%s\t%s\n",
+               room.id,
+               room.type.c_str(),
+               room.price,
+               (room.isBooked ? "Yes" : "No"),
+               (room.isMaintenance ? "Yes" : "No"));
     }
-
-    cout << left << setw(10) << "ID" << setw(15) << "Type" << setw(10) << "Price" 
-         << setw(10) << "Booked" << setw(15) << "Maintenance" << "\n";
-    cout << "-------------------------------------------------------------\n";
-
-    string line;
-    while (getline(fin, line)) {
-        if (line.empty()) continue;
-
-        stringstream ss(line);
-        Room r;
-        string idStr, priceStr, bookedStr, maintenanceStr;
-
-        getline(ss, idStr, ',');
-        getline(ss, r.type, ',');
-        getline(ss, priceStr, ',');
-        getline(ss, bookedStr, ',');
-        getline(ss, maintenanceStr, ',');
-
-        try {
-            r.id = stoi(idStr);
-            r.price = stod(priceStr);
-            r.isBooked = (bookedStr == "1" || bookedStr == "true");
-            r.isMaintenance = (maintenanceStr == "1" || maintenanceStr == "true");
-        } catch (...) {
-            // Skip invalid record
-            continue;
-        }
-
-        cout << left << setw(10) << r.id 
-             << setw(15) << r.type 
-             << setw(10) << fixed << setprecision(2) << r.price 
-             << setw(10) << (r.isBooked ? "Yes" : "No") 
-             << setw(15) << (r.isMaintenance ? "Under Maintenance" : "Available") << "\n";
-    }
-
     pressEnterToContinue();
 }
 
 bool Room::updateRoomStatus(int roomId, bool bookStatus) {
-    ifstream fin("data/rooms.csv");
-    ofstream temp("data/temp.csv");
+    vector<Room> rooms;
+    loadRooms(rooms);
 
-    if (!fin || !temp) {
-        printRed("Error opening room files.\n");
+    auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) { return r.id == roomId; });
+    if (it == rooms.end()) {
+        printRed("Room not found.\n");
+        pressEnterToContinue();
         return false;
     }
 
-    string line;
-    bool updated = false;
-
-    while (getline(fin, line)) {
-        if (line.empty()) {
-            temp << "\n";
-            continue;
-        }
-
-        stringstream ss(line);
-        Room r;
-        string idStr, priceStr, bookedStr, maintenanceStr;
-
-        getline(ss, idStr, ',');
-        getline(ss, r.type, ',');
-        getline(ss, priceStr, ',');
-        getline(ss, bookedStr, ',');
-        getline(ss, maintenanceStr, ',');
-
-        try {
-            r.id = stoi(idStr);
-            r.price = stod(priceStr);
-            r.isBooked = (bookedStr == "1" || bookedStr == "true");
-            r.isMaintenance = (maintenanceStr == "1" || maintenanceStr == "true");
-        } catch (...) {
-            // Write original line to temp if parsing fails to avoid data loss
-            temp << line << "\n";
-            continue;
-        }
-
-        if (r.id == roomId) {
-            r.isBooked = bookStatus;
-            updated = true;
-        }
-
-        temp << r.id << "," << r.type << "," << r.price << "," 
-             << (r.isBooked ? "1" : "0") << "," << (r.isMaintenance ? "1" : "0") << "\n";
+    if (it->isMaintenance) {
+        printRed("Room under maintenance cannot be booked.\n");
+        pressEnterToContinue();
+        return false;
     }
 
-    fin.close();
-    temp.close();
-
-    remove("data/rooms.csv");
-    rename("data/temp.csv", "data/rooms.csv");
-
-    return updated;
+    it->isBooked = bookStatus;
+    saveRooms(rooms);
+    return true;
 }
 
 bool Room::roomExists(int roomId) {
-    ifstream fin("data/rooms.csv");
-    if (!fin) return false;
+    vector<Room> rooms;
+    loadRooms(rooms);
 
-    string line;
-    while (getline(fin, line)) {
-        if (line.empty()) continue;
-
-        stringstream ss(line);
-        string idStr;
-
-        getline(ss, idStr, ',');
-        try {
-            if (stoi(idStr) == roomId) {
-                return true;
-            }
-        } catch (...) {
-            continue;
-        }
-    }
-    return false;
+    auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) { return r.id == roomId; });
+    return it != rooms.end();
 }
 
 vector<Room> Room::getAvailableRooms(const string& desiredType, const string& checkIn, const string& checkOut) {
-    vector<Room> availableRooms;
-    ifstream fin("data/rooms.csv");
-    if (!fin) return availableRooms;
+    vector<Room> rooms;
+    loadRooms(rooms);
+    updateBookingStatus(rooms);
 
-    string line;
-    while (getline(fin, line)) {
-        if (line.empty()) continue;
-
-        stringstream ss(line);
-        Room r;
-        string idStr, priceStr, bookedStr, maintenanceStr;
-
-        getline(ss, idStr, ',');
-        getline(ss, r.type, ',');
-        getline(ss, priceStr, ',');
-        getline(ss, bookedStr, ',');
-        getline(ss, maintenanceStr, ',');
-
-        try {
-            r.id = stoi(idStr);
-            r.price = stod(priceStr);
-            r.isBooked = (bookedStr == "1" || bookedStr == "true");
-            r.isMaintenance = (maintenanceStr == "1" || maintenanceStr == "true");
-        } catch (...) {
-            continue;
-        }
-
-        if (r.type != desiredType) continue;
-
-        if (!r.isBooked && !r.isMaintenance) {
-            availableRooms.push_back(r);
+    vector<Room> available;
+    for (const auto& room : rooms) {
+        if (!room.isBooked && !room.isMaintenance && room.type == desiredType) {
+            available.push_back(room);
         }
     }
-    return availableRooms;
+    return available;
 }
 
 void Room::manageMaintenance() {
-    int roomId;
-    printGreen("Enter Room ID to update maintenance status: ");
-    cin >> roomId;
+    vector<Room> rooms;
+    loadRooms(rooms);
 
-    if (!roomExists(roomId)) {
-        printRed("Room ID does not exist!\n");
+    int id;
+    cout << "Enter room ID to toggle maintenance status: ";
+    cin >> id;
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+    auto it = find_if(rooms.begin(), rooms.end(), [id](const Room& r) { return r.id == id; });
+    if (it == rooms.end()) {
+        printRed("Room not found.\n");
         pressEnterToContinue();
         return;
     }
 
-    ifstream fin("data/rooms.csv");
-    ofstream temp("data/temp.csv");
-    if (!fin || !temp) {
-        printRed("Error opening files.\n");
-        pressEnterToContinue();
-        return;
-    }
-
-    string line;
-    bool updated = false;
-
-    while (getline(fin, line)) {
-        if (line.empty()) {
-            temp << "\n";
-            continue;
-        }
-
-        stringstream ss(line);
-        Room r;
-        string idStr, priceStr, bookedStr, maintenanceStr;
-
-        getline(ss, idStr, ',');
-        getline(ss, r.type, ',');
-        getline(ss, priceStr, ',');
-        getline(ss, bookedStr, ',');
-        getline(ss, maintenanceStr, ',');
-
-        try {
-            r.id = stoi(idStr);
-            r.price = stod(priceStr);
-            r.isBooked = (bookedStr == "1" || bookedStr == "true");
-            r.isMaintenance = (maintenanceStr == "1" || maintenanceStr == "true");
-        } catch (...) {
-            temp << line << "\n";
-            continue;
-        }
-
-        if (r.id == roomId) {
-            cout << "Current maintenance status: " << (r.isMaintenance ? "Under Maintenance" : "Available") << "\n";
-            printGreen("Set maintenance status (1 = Under Maintenance, 0 = Available): ");
-            int status;
-            cin >> status;
-            r.isMaintenance = (status == 1);
-            updated = true;
-        }
-
-        temp << r.id << "," << r.type << "," << r.price << "," 
-             << (r.isBooked ? "1" : "0") << "," << (r.isMaintenance ? "1" : "0") << "\n";
-    }
-
-    fin.close();
-    temp.close();
-
-    remove("data/rooms.csv");
-    rename("data/temp.csv", "data/rooms.csv");
-
-    if (updated) {
-        printGreen("Maintenance status updated successfully.\n");
+    it->isMaintenance = !it->isMaintenance;
+    if (it->isMaintenance) {
+        it->isBooked = false; // maintenance rooms can't be booked
+        printGreen("Room " + to_string(id) + " marked as under maintenance.\n");
     } else {
-        printRed("Failed to update maintenance status.\n");
+        printGreen("Room " + to_string(id) + " removed from maintenance.\n");
     }
+
+    saveRooms(rooms);
     pressEnterToContinue();
 }
 
 bool Room::isRoomUnderMaintenance(int roomId) {
-    ifstream fin("data/rooms.csv");
-    if (!fin) return false;
+    vector<Room> rooms;
+    loadRooms(rooms);
 
-    string line;
-    while (getline(fin, line)) {
-        if (line.empty()) continue;
+    auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) { return r.id == roomId; });
+    if (it == rooms.end()) return false;
 
-        stringstream ss(line);
-        Room r;
-        string idStr, priceStr, bookedStr, maintenanceStr;
-
-        getline(ss, idStr, ',');
-        getline(ss, r.type, ',');
-        getline(ss, priceStr, ',');
-        getline(ss, bookedStr, ',');
-        getline(ss, maintenanceStr, ',');
-
-        try {
-            r.id = stoi(idStr);
-            r.price = stod(priceStr);
-            r.isBooked = (bookedStr == "1" || bookedStr == "true");
-            r.isMaintenance = (maintenanceStr == "1" || maintenanceStr == "true");
-        } catch (...) {
-            continue;
-        }
-
-        if (r.id == roomId) {
-            return r.isMaintenance;
-        }
-    }
-    return false;
+    return it->isMaintenance;
 }

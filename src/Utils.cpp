@@ -1,6 +1,5 @@
+#include <bits/stdc++.h>
 #include "Utils.h"
-#include <iostream>
-#include <regex>
 
 using namespace std;
 
@@ -12,11 +11,11 @@ int convertDateToInt(const string& date) {
 }
 
 void printGreen(const string& text) {
-    cout << "\033[32m" << text << "\033[0m";
+    cout << COLOR_GREEN << text << COLOR_RESET;
 }
 
 void printRed(const string& text) {
-    cout << "\033[31m" << text << "\033[0m";
+    cerr << COLOR_RED << text << COLOR_RESET;
 }
 
 void clearScreen() {
@@ -29,8 +28,7 @@ void clearScreen() {
 
 void pressEnterToContinue() {
     cout << "\nPress Enter to continue...";
-    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    clearScreen();
+    cin.get();
 }
 
 void printBanner() {

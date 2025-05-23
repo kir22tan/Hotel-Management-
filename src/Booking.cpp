@@ -2,162 +2,202 @@
 #include "Room.h"
 #include "Utils.h"
 
-#include <iostream>
 #include <fstream>
-#include <sstream>
-#include <iomanip>
 #include <vector>
+#include <string>
+#include <sstream>
 
 using namespace std;
 
-Booking::Booking() {}
+vector<Booking> Booking::bookings; // static member definition
 
-Booking::Booking(int roomId, const string& name, const string& in, const string& out)
-    : roomId(roomId), customerName(name), checkInDate(in), checkOutDate(out) {}
+Booking::Booking(const string& bookingId, int roomId, const string& guestName,
+                 const string& checkIn, const string& checkOut)
+    : bookingId(bookingId), roomId(roomId), guestName(guestName), checkIn(checkIn), checkOut(checkOut) {}
+
+// Helper to split CSV line
+static vector<string> splitCSVLine(const string& line) {
+    vector<string> result;
+    stringstream ss(line);
+    string token;
+    while (getline(ss, token, ',')) {
+        result.push_back(token);
+    }
+    return result;
+}
+
+void Booking::loadBookings() {
+    bookings.clear();
+    ifstream fin("data/bookings.csv");
+    if (!fin) {
+        printRed("Cannot open bookings.csv\n");
+        return;
+    }
+    string line;
+    while (getline(fin, line)) {
+        if (line.empty()) continue;
+        vector<string> tokens = splitCSVLine(line);
+        if (tokens.size() != 5) continue; // basic validation
+        try {
+            int roomId = stoi(tokens[1]);
+            bookings.emplace_back(tokens[0], roomId, tokens[2], tokens[3], tokens[4]);
+        } catch (...) {
+            printRed("Error parsing booking line: " + line + "\n");
+        }
+    }
+    fin.close();
+}
+
+void Booking::saveBookings() {
+    ofstream fout("data/bookings.csv");
+    for (const auto& b : bookings) {
+        fout << b.bookingId << "," << b.roomId << "," << b.guestName << ","
+             << b.checkIn << "," << b.checkOut << "\n";
+    }
+    fout.close();
+}
 
 void Booking::bookRoom() {
-    Booking b;
+    loadBookings();
 
-    printGreen("Enter Room ID to book: ");
-    cin >> b.roomId;
-    cin.ignore();
-
-    if (!Room::roomExists(b.roomId)) {
-        printRed("Room ID does not exist.\n");
+    printGreen("Enter Guest Name: ");
+    string guestName;
+    getline(cin, guestName);
+    if (guestName.empty()) {
+        printRed("Guest name cannot be empty.\n");
         pressEnterToContinue();
         return;
     }
 
-    if (Room::isRoomUnderMaintenance(b.roomId)) {
-        printRed("Room is currently under maintenance and cannot be booked.\n");
+    printGreen("Enter Check-in Date (dd-mm-yyyy): ");
+    string checkIn;
+    getline(cin, checkIn);
+    if (!isValidDate(checkIn)) {
+        printRed("Invalid check-in date format.\n");
         pressEnterToContinue();
         return;
     }
 
-    printGreen("Enter Customer Name: ");
-    getline(cin, b.customerName);
-
-    printGreen("Enter Check-In Date (DD-MM-YYYY): ");
-    getline(cin, b.checkInDate);
-    if (!isValidDate(b.checkInDate)) {
-        printRed("Invalid Check-In date format. Use DD-MM-YYYY.\n");
+    printGreen("Enter Check-out Date (dd-mm-yyyy): ");
+    string checkOut;
+    getline(cin, checkOut);
+    if (!isValidDate(checkOut)) {
+        printRed("Invalid check-out date format.\n");
         pressEnterToContinue();
         return;
     }
 
-    printGreen("Enter Check-Out Date (DD-MM-YYYY): ");
-    getline(cin, b.checkOutDate);
-    if (!isValidDate(b.checkOutDate)) {
-        printRed("Invalid Check-Out date format. Use DD-MM-YYYY.\n");
+    if (convertDateToInt(checkOut) <= convertDateToInt(checkIn)) {
+        printRed("Check-out date must be after check-in date.\n");
         pressEnterToContinue();
         return;
     }
 
-    if (convertDateToInt(b.checkInDate) >= convertDateToInt(b.checkOutDate)) {
-        printRed("Check-Out date must be after Check-In date.\n");
+    vector<Room> availableRooms = Room::getAvailableRooms("", checkIn, checkOut);
+
+    if (availableRooms.empty()) {
+        printRed("No rooms available for the selected dates.\n");
         pressEnterToContinue();
         return;
     }
 
-    if (isRoomBookedDuring(b.roomId, b.checkInDate, b.checkOutDate)) {
-        printRed("Room is already booked for the selected dates.\n");
+    printGreen("\nAvailable Rooms:\n");
+    for (const auto& r : availableRooms) {
+        printGreen("Room ID: " + to_string(r.id) + ", Type: " + r.type + ", Price: " + to_string(r.price) + "\n");
+    }
+
+    printGreen("\nEnter Room ID to book: ");
+    string roomIdStr;
+    getline(cin, roomIdStr);
+    int roomId;
+    try {
+        roomId = stoi(roomIdStr);
+    } catch (...) {
+        printRed("Invalid room ID input.\n");
         pressEnterToContinue();
         return;
     }
 
-    ofstream fout("data/bookings.csv", ios::app);
-    if (!fout) {
-        printRed("Failed to open bookings.csv.\n");
+    bool found = false;
+    for (const auto& r : availableRooms) {
+        if (r.id == roomId) {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        printRed("Selected room is not available for the given dates.\n");
         pressEnterToContinue();
         return;
     }
 
-    fout << b.roomId << "," << b.customerName << "," << b.checkInDate << "," << b.checkOutDate << "\n";
-    fout.close();
+    int nextNum = 1;
+    if (!bookings.empty()) {
+        string lastId = bookings.back().bookingId;
+        try {
+            nextNum = stoi(lastId.substr(1)) + 1;
+        } catch (...) {
+            nextNum = bookings.size() + 1;
+        }
+    }
+    stringstream ss;
+    ss << "B" << (nextNum < 10 ? "00" : (nextNum < 100 ? "0" : "")) << nextNum;
+    string bookingId = ss.str();
 
-    Room::updateRoomStatus(b.roomId, true);
+    bookings.emplace_back(bookingId, roomId, guestName, checkIn, checkOut);
+    saveBookings();
 
-    printGreen("Room booked successfully!\n");
+    printGreen("Booking successful! Your Booking ID: " + bookingId + "\n");
     pressEnterToContinue();
 }
 
 void Booking::displayBookings() {
-    ifstream fin("data/bookings.csv");
-    if (!fin) {
-        printRed("No booking records found.\n");
+    loadBookings();
+    if (bookings.empty()) {
+        printRed("No bookings found.\n");
         pressEnterToContinue();
         return;
     }
 
-    cout << left << setw(10) << "Room ID" << setw(20) << "Customer" << setw(15) << "Check-In" << setw(15) << "Check-Out" << "\n";
-    cout << "-------------------------------------------------------------------\n";
+    printGreen("Current Bookings:\n");
+    printGreen("BookingID  RoomID  Guest Name         Check-in    Check-out\n");
+    printGreen("----------------------------------------------------------\n");
 
-    string line;
-    while (getline(fin, line)) {
-        stringstream ss(line);
-        Booking b;
-        getline(ss, line, ','); b.roomId = stoi(line);
-        getline(ss, b.customerName, ',');
-        getline(ss, b.checkInDate, ',');
-        getline(ss, b.checkOutDate, ',');
-
-        cout << left << setw(10) << b.roomId << setw(20) << b.customerName << setw(15) << b.checkInDate << setw(15) << b.checkOutDate << "\n";
+    for (const auto& b : bookings) {
+        printGreen(b.bookingId + "     " + to_string(b.roomId) + "     " + b.guestName + "     " + b.checkIn + "   " + b.checkOut + "\n");
     }
 
-    fin.close();
     pressEnterToContinue();
 }
 
-bool Booking::isRoomBookedDuring(int roomId, const string& desiredCheckIn, const string& desiredCheckOut) {
-    ifstream fin("data/bookings.csv");
-    if (!fin) return false;
+void Booking::cancelBooking() {
+    loadBookings();
 
-    string line;
-    int desiredStart = convertDateToInt(desiredCheckIn);
-    int desiredEnd = convertDateToInt(desiredCheckOut);
-
-    while (getline(fin, line)) {
-        stringstream ss(line);
-        Booking b;
-
-        getline(ss, line, ','); b.roomId = stoi(line);
-        getline(ss, b.customerName, ',');
-        getline(ss, b.checkInDate, ',');
-        getline(ss, b.checkOutDate, ',');
-
-        if (b.roomId != roomId) continue;
-
-        int bookedStart = convertDateToInt(b.checkInDate);
-        int bookedEnd = convertDateToInt(b.checkOutDate);
-
-        // Check if desired booking overlaps with existing booking
-        if (!(desiredEnd <= bookedStart || desiredStart >= bookedEnd)) {
-            fin.close();
-            return true;
-        }
+    if (bookings.empty()) {
+        printRed("No bookings to cancel.\n");
+        pressEnterToContinue();
+        return;
     }
-    fin.close();
-    return false;
-}
 
-vector<Booking> Booking::getBookingsForRoom(int roomId) {
-    vector<Booking> bookings;
-    ifstream fin("data/bookings.csv");
-    if (!fin) return bookings;
+    printGreen("Enter Booking ID to cancel: ");
+    string id;
+    getline(cin, id);
 
-    string line;
-    while (getline(fin, line)) {
-        stringstream ss(line);
-        Booking b;
-        getline(ss, line, ','); b.roomId = stoi(line);
-        getline(ss, b.customerName, ',');
-        getline(ss, b.checkInDate, ',');
-        getline(ss, b.checkOutDate, ',');
-
-        if (b.roomId == roomId) {
-            bookings.push_back(b);
-        }
+    auto it = bookings.begin();
+    for (; it != bookings.end(); ++it) {
+        if (it->bookingId == id) break;
     }
-    fin.close();
-    return bookings;
+
+    if (it == bookings.end()) {
+        printRed("Booking ID not found.\n");
+        pressEnterToContinue();
+        return;
+    }
+
+    bookings.erase(it);
+    saveBookings();
+
+    printGreen("Booking canceled successfully.\n");
+    pressEnterToContinue();
 }

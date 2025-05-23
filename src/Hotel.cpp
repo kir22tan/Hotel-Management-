@@ -1,10 +1,11 @@
-    #include "Hotel.h"
-    #include "Utils.h"
+#include <bits/stdc++.h>
+#include "Hotel.h"
+#include "Room.h"
+#include "Booking.h"
+#include "Utils.h"
 
-    #include <iostream>
+using namespace std;
 
-    using namespace std;
-    
 void Hotel::mainMenu() {
     int choice;
 
@@ -17,11 +18,13 @@ void Hotel::mainMenu() {
         printGreen("2. View Rooms\n");
         printGreen("3. Book Room\n");
         printGreen("4. View Bookings\n");
-        printGreen("5. Manage Room Maintenance\n");  // New option
-        printRed("6. Exit\n");  // Changed Exit option number
+        printGreen("5. Cancel Booking\n");
+        printGreen("6. Manage Room Maintenance\n");
+        printRed("7. Exit\n");
+
         cout << "\nEnter your choice: ";
         cin >> choice;
-        cin.ignore();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
         clearScreen();
         printBanner();
@@ -40,19 +43,19 @@ void Hotel::mainMenu() {
                 Booking::displayBookings();
                 break;
             case 5:
-                Room::manageMaintenance();  // Call your new maintenance handler here
+                Booking::cancelBooking();
                 break;
             case 6:
-                printGreen("Thank you for using Hotel Reservation System!\n");
+                Room::manageMaintenance();
+                break;
+            case 7:
+                printGreen("Thank you for using the Hotel Reservation System!\n");
+                pressEnterToContinue();
                 return;
             default:
                 printRed("Invalid choice. Please try again.\n");
                 pressEnterToContinue();
                 break;
         }
-
-        clearScreen();
-        printBanner();
     }
 }
-

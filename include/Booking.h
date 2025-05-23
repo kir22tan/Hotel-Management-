@@ -1,22 +1,27 @@
 #pragma once
 #include <string>
 #include <vector>
-#include "Room.h"
 
 using namespace std;
 
 class Booking {
 public:
+    string bookingId;
     int roomId;
-    string customerName;
-    string checkInDate;
-    string checkOutDate;
+    string guestName;
+    string checkIn;
+    string checkOut;
 
     Booking();
-    Booking(int roomId, const string& name, const string& in, const string& out);
+    Booking(const string& bookingId, int roomId, const string& guestName, const string& checkIn, const string& checkOut);
 
-    static void bookRoom();
+    static void loadBookings();
+    static void saveBookings();
+
     static void displayBookings();
-    static bool isRoomBookedDuring(int roomId, const string& desiredCheckIn, const string& desiredCheckOut);
-    static vector<Booking> getBookingsForRoom(int roomId);
+    static void bookRoom();
+    static void cancelBooking();
+
+private:
+    static vector<Booking> bookings;
 };

@@ -1,25 +1,30 @@
 #pragma once
-#include <string>
 #include <vector>
+#include <string>
 
-using namespace std;
+namespace std {
 
 class Room {
 public:
     int id;
-    string type;
+    std::string type;
     double price;
     bool isBooked;
-    bool isMaintenance;  // New field
+    bool isMaintenance;
 
     Room();
-    Room(int id, const string& type, double price, bool isBooked, bool isMaintenance = false);
+    Room(int id, const std::string& type, double price, bool isBooked = false, bool isMaintenance = false);
 
+    static void loadRooms(std::vector<Room>& rooms);
+    static void saveRooms(const std::vector<Room>& rooms);
+    static void updateBookingStatus(std::vector<Room>& rooms);
     static void addRoom();
     static void displayRooms();
     static bool updateRoomStatus(int roomId, bool bookStatus);
     static bool roomExists(int roomId);
-    static vector<Room> getAvailableRooms(const string& desiredType, const string& checkIn, const string& checkOut);
-    static void manageMaintenance();  // New method
-    static bool isRoomUnderMaintenance(int roomId) ;
+    static std::vector<Room> getAvailableRooms(const std::string& desiredType, const std::string& checkIn, const std::string& checkOut);
+    static void manageMaintenance();
+    static bool isRoomUnderMaintenance(int roomId);
 };
+
+} // namespace std
