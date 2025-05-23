@@ -231,6 +231,7 @@ vector<Room> Room::getAvailableRooms(const string& desiredType, const string& ch
 void Room::manageMaintenance() {
     vector<Room> rooms;
     loadRooms(rooms);
+    updateBookingStatus(rooms);  // <<<<< Important: sync booking info here!
 
     int id;
     cout << "Enter room ID to toggle maintenance status: ";
@@ -244,11 +245,18 @@ void Room::manageMaintenance() {
         return;
     }
 
-    it->isMaintenance = !it->isMaintenance;
-    if (it->isMaintenance) {
-        it->isBooked = false; // maintenance rooms can't be booked
+    if (!it->isMaintenance) {
+        if (it->isBooked) {
+            printRed("Cannot put a booked room under maintenance. Please cancel the booking first.\n");
+            pressEnterToContinue();
+            return;
+        }
+        it->isMaintenance = true;
+        it->isBooked = false;
         printGreen("Room " + to_string(id) + " marked as under maintenance.\n");
-    } else {
+    }
+    else {
+        it->isMaintenance = false;
         printGreen("Room " + to_string(id) + " removed from maintenance.\n");
     }
 
@@ -256,12 +264,3 @@ void Room::manageMaintenance() {
     pressEnterToContinue();
 }
 
-bool Room::isRoomUnderMaintenance(int roomId) {
-    vector<Room> rooms;
-    loadRooms(rooms);
-
-    auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) { return r.id == roomId; });
-    if (it == rooms.end()) return false;
-
-    return it->isMaintenance;
-}
