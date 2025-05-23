@@ -1,6 +1,4 @@
-# 🏨 HOTMAN - Hotel Reservation System | C++ 
-
-### by Siddharth - The Arctic Wolf - Gautam
+# 🏨 HOT-MAN - Hotel Reservation System | C++ 
 
 A terminal-based **Hotel Reservation System** built in C++ that allows users to:
 
