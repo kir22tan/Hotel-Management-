@@ -9,18 +9,6 @@ A terminal-based **Hotel Reservation System** built in C++ that allows users to:
 - Store all data in `.csv` files (no external databases needed)
 
 ---
-
-## 🚀 Features
-
-✅ Add / View / Cancel Bookings  
-✅ Check Room Availability  
-✅ Display Rooms Sorted by Price  
-✅ Track Room Maintenance Status  
-✅ Data Persistence using `CSV` files  
-✅ Color-coded console UI (Green = success, Red = error)
-
----
-
 ## 📂 File Structure
 
 ```plaintext
