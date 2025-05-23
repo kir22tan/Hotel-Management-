@@ -1,4 +1,3 @@
-#include <iostream>
 #include "Hotel.h"
 
 int main() {

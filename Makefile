@@ -1,8 +1,9 @@
 CXX = g++
 CXXFLAGS = -Iinclude -Wall -std=c++11
 
-SRC = src/main.cpp src/Hotel.cpp
-OBJ = $(SRC:.cpp=.o)
+SRC = src/main.cpp src/Hotel.cpp src/Room.cpp src/Booking.cpp src/Utils.cpp
+OBJ = $(patsubst src/%.cpp,obj/%.o,$(SRC))
+
 EXEC = hotel_management
 
 all: $(EXEC)
@@ -10,8 +11,10 @@ all: $(EXEC)
 $(EXEC): $(OBJ)
 	$(CXX) $(OBJ) -o $@
 
-%.o: %.cpp
+obj/%.o: src/%.cpp
+	if not exist obj mkdir obj
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ) $(EXEC)
+	if exist obj rmdir /s /q obj
+	if exist $(EXEC) del $(EXEC)

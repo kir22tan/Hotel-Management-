@@ -1,37 +1,30 @@
-#include "../include/Hotel.h"
-#include "../include/Utils.h"
-#include "../include/Room.h"
-#include "../include/Booking.h"
+    #include "Hotel.h"
+    #include "Utils.h"
 
-#include <iostream>
-#include <limits>
+    #include <iostream>
 
-using namespace std;
-
+    using namespace std;
+    
 void Hotel::mainMenu() {
     int choice;
 
     while (true) {
-        printBanner();
-        cout << "Main Menu:\n";
-        cout << "1. Add Room\n";
-        cout << "2. View Rooms\n";
-        cout << "3. Book Room\n";
-        cout << "4. View Bookings\n";
-        cout << "5. Exit\n";
-        cout << "\nEnter your choice: ";
-
-        if (!(cin >> choice)) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            clearScreen();
-            cout << "Invalid input. Please enter a number.\n";
-            pressEnterToContinue();
-            continue;
-        }
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         clearScreen();
+        printBanner();
+
+        printGreen("Main Menu:\n");
+        printGreen("1. Add Room\n");
+        printGreen("2. View Rooms\n");
+        printGreen("3. Book Room\n");
+        printGreen("4. View Bookings\n");
+        printGreen("5. Manage Room Maintenance\n");  // New option
+        printRed("6. Exit\n");  // Changed Exit option number
+        cout << "\nEnter your choice: ";
+        cin >> choice;
+        cin.ignore();
+
+        clearScreen();
+        printBanner();
 
         switch (choice) {
             case 1:
@@ -47,12 +40,19 @@ void Hotel::mainMenu() {
                 Booking::displayBookings();
                 break;
             case 5:
-                cout << "Thank you for using Hotel Reservation System!\n";
+                Room::manageMaintenance();  // Call your new maintenance handler here
+                break;
+            case 6:
+                printGreen("Thank you for using Hotel Reservation System!\n");
                 return;
             default:
-                cout << "Invalid choice. Please try again.\n";
+                printRed("Invalid choice. Please try again.\n");
                 pressEnterToContinue();
                 break;
         }
+
+        clearScreen();
+        printBanner();
     }
 }
+
