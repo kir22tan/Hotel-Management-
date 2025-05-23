@@ -56,6 +56,14 @@ void Booking::saveBookings() {
     }
     fout.close();
 }
+static string normalizeRoomType(const string& input) {
+    if (input.empty()) return "";
+    string result = input;
+    transform(result.begin(), result.end(), result.begin(), ::tolower);
+    result[0] = toupper(result[0]);
+    return result;
+}
+#include <algorithm>  // Add this at the top of your Booking.cpp
 
 void Booking::bookRoom() {
     loadBookings();
@@ -93,15 +101,29 @@ void Booking::bookRoom() {
         return;
     }
 
-    vector<Room> availableRooms = Room::getAvailableRooms("", checkIn, checkOut);
-
-    if (availableRooms.empty()) {
-        printRed("No rooms available for the selected dates.\n");
+    printGreen("Enter Room Type to book (e.g., Single, Double, Suite): ");
+    string roomType;
+    getline(cin, roomType);
+    if (roomType.empty()) {
+        printRed("Room type cannot be empty.\n");
         pressEnterToContinue();
         return;
     }
 
-    printGreen("\nAvailable Rooms:\n");
+    vector<Room> availableRooms = Room::getAvailableRooms(roomType, checkIn, checkOut);
+
+    if (availableRooms.empty()) {
+        printRed("No rooms available for the selected type and dates.\n");
+        pressEnterToContinue();
+        return;
+    }
+
+    // Sort availableRooms by price ascending
+    std::sort(availableRooms.begin(), availableRooms.end(), [](const Room& a, const Room& b) {
+        return a.price < b.price;
+    });
+
+    printGreen("\nAvailable Rooms (sorted by price):\n");
     for (const auto& r : availableRooms) {
         printGreen("Room ID: " + to_string(r.id) + ", Type: " + r.type + ", Price: " + to_string(r.price) + "\n");
     }
@@ -151,6 +173,7 @@ void Booking::bookRoom() {
     printGreen("Booking successful! Your Booking ID: " + bookingId + "\n");
     pressEnterToContinue();
 }
+
 void Booking::displayBookings() {
     loadBookings();
     if (bookings.empty()) {
