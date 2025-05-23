@@ -37,6 +37,39 @@ void printBanner() {
     cout << "=============================================\n\n";
 }
 
+void printLogo(){
+        constexpr auto RESET = "\033[0m";
+    constexpr auto RED = "\033[31m";
+    constexpr auto CYAN = "\033[36m";
+    constexpr auto BOLD = "\033[1m";
+
+    cout << BOLD << RED << R"(
+ H     H   O O O   T T T T T          M     M     A      N     N
+ H     H  O     O      T              M M M M    A A     N N   N
+ H.....H  O     O      T       -      M  M  M   A...A    N  N  N
+ H     H  O     O      T              M     M  A     A   N   N N
+ H     H   O O O       T              M     M A       A  N     N
+)" << RESET << endl;
+
+    // Centered subtitle
+    cout << BOLD << CYAN << "  \t   Siddharth - The Arctic Wolf - Gautam" << RESET << endl;
+    cout<<"\n";
+    // cout<<"\n";
+}
+
+// void printLogo() {
+//     cout << R"(
+//   ██╗  ██╗ ██████╗ ████████╗    ███╗  ███╗ █████╗ ███╗   ██╗
+//   ██║  ██║██╔═══██╗╚══██╔══╝    ████╗ ████║██╔══██╗████╗  ██║
+//   ███████║██║   ██║   ██║       ██╔████╔██║███████║██╔██╗ ██║
+//   ██╔══██║██║   ██║   ██║       ██║╚██╔╝██║██╔══██║██║╚██╗██║
+//   ██║  ██║╚██████╔╝   ██║       ██║ ╚═╝ ██║██║  ██║██║ ╚████║
+//   ╚═╝  ╚═╝ ╚═════╝    ╚═╝       ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝
+
+//          SIDDHARTH - THE ARCTIC WOLF - GAUTAM
+//     )" << endl;
+// }
+
 bool isValidDate(const string& date) {
     regex dateFormat(R"(^\d{2}-\d{2}-\d{4}$)");
     if (!regex_match(date, dateFormat)) return false;

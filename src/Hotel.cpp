@@ -11,7 +11,8 @@ void Hotel::mainMenu() {
 
     while (true) {
         clearScreen();
-        printBanner();
+        // printBanner();
+        printLogo();
 
         printGreen("Main Menu:\n");
         printGreen("1. Add Room\n");
@@ -28,6 +29,7 @@ void Hotel::mainMenu() {
 
         clearScreen();
         printBanner();
+        // printLogo();
 
         switch (choice) {
             case 1:

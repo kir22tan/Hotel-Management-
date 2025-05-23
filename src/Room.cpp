@@ -1,4 +1,3 @@
-#pragma once
 #include "Room.h"
 #include "Utils.h"
 #include <iostream>
@@ -105,7 +104,7 @@ void Room::addRoom() {
     string type;
     double price;
 
-    cout << "Enter new room ID (4-digit): ";
+    cout << "Enter new room ID (4-digits): ";
     cin >> id;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
@@ -115,10 +114,10 @@ void Room::addRoom() {
         return;
     }
 
-    cout << "Enter room type: ";
+    cout << "Enter room type: (Suite/Single/Double) ";
     getline(cin, type);
 
-    cout << "Enter price: ";
+    cout << "Enter price / night: ";
     cin >> price;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
@@ -134,25 +133,56 @@ void Room::displayRooms() {
     loadRooms(rooms);
     updateBookingStatus(rooms);
 
-    // Sort rooms by type alphabetically and then by price ascending
-    sort(rooms.begin(), rooms.end(), [](const Room& a, const Room& b) {
-        if (a.type == b.type)
-            return a.price < b.price;
-        return a.type < b.type;
-    });
+    // Group rooms by type
+    vector<string> roomTypes = {"Suite", "Single", "Double"};
 
-    printGreen("RoomID\tType\t\tPrice\tBooked\tMaintenance\n");
+    printGreen("RoomID\tType\t\tPrice\tStatus\n");
     printGreen("-------------------------------------------------------\n");
-    for (const auto& room : rooms) {
-        printf("%04d\t%-10s\t%.2f\t%s\t%s\n",
-               room.id,
-               room.type.c_str(),
-               room.price,
-               (room.isBooked ? "Yes" : "No"),
-               (room.isMaintenance ? "Yes" : "No"));
+
+    for (const auto& type : roomTypes) {
+        // Filter rooms of this type
+        vector<Room> group;
+        for (const auto& room : rooms) {
+            if (room.type == type) {
+                group.push_back(room);
+            }
+        }
+
+        // Sort by price ascending
+        sort(group.begin(), group.end(), [](const Room& a, const Room& b) {
+            return a.price < b.price;
+        });
+
+        if (group.empty()) continue; // skip if none
+
+        // Print rooms in this group
+        for (const auto& room : group) {
+            stringstream ss;
+            ss << setw(4) << setfill('0') << room.id << "\t"
+            << setfill(' ') << left << setw(10) << room.type << "\t"
+            << fixed << setprecision(2) << room.price << "\t";
+
+
+            if (room.isMaintenance) {
+                ss << "Maintenance\n";
+                printRed(ss.str());
+            }
+            else if (room.isBooked) {
+                ss << "Booked\n";
+                cout << ss.str();
+            }
+            else {
+                ss << "Available\n";
+                printGreen(ss.str());
+            }
+        }
+        cout << "\n\n"; // 2 blank lines between groups
     }
+
     pressEnterToContinue();
 }
+
+
 
 bool Room::updateRoomStatus(int roomId, bool bookStatus) {
     vector<Room> rooms;

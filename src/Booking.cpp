@@ -151,7 +151,6 @@ void Booking::bookRoom() {
     printGreen("Booking successful! Your Booking ID: " + bookingId + "\n");
     pressEnterToContinue();
 }
-
 void Booking::displayBookings() {
     loadBookings();
     if (bookings.empty()) {
@@ -160,16 +159,27 @@ void Booking::displayBookings() {
         return;
     }
 
-    printGreen("Current Bookings:\n");
-    printGreen("BookingID  RoomID  Guest Name         Check-in    Check-out\n");
-    printGreen("----------------------------------------------------------\n");
+    // Centered heading (assuming 65 character console width)
+    cout << "\n";
+    cout << string(22, ' ') << "Current Bookings" << "\n\n";
+
+    cout << "BookingID  RoomID  Guest Name               Check-in    Check-out\n";
+    cout << "-----------------------------------------------------------------\n";
 
     for (const auto& b : bookings) {
-        printGreen(b.bookingId + "     " + to_string(b.roomId) + "     " + b.guestName + "     " + b.checkIn + "   " + b.checkOut + "\n");
+        char line[100];
+        snprintf(line, sizeof(line), "%-10s  %-6d  %-22s  %-10s  %-10s",
+                 b.bookingId.c_str(),
+                 b.roomId,
+                 b.guestName.c_str(),
+                 b.checkIn.c_str(),
+                 b.checkOut.c_str());
+        printGreen(string(line) + "\n");
     }
 
     pressEnterToContinue();
 }
+
 
 void Booking::cancelBooking() {
     loadBookings();
