@@ -1,31 +1,44 @@
 #include "Room.h"
 #include "Utils.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <vector>
+#include <iomanip>
 
 using namespace std;
 
 const string ROOMS_FILE = "data/rooms.csv";
 const string BOOKINGS_FILE = "data/bookings.csv";
 
+// static member initialization
+vector<Room> Room::rooms;
+
 Room::Room() : id(0), type(""), price(0), isBooked(false), isMaintenance(false) {}
 
 Room::Room(int id, const string& type, double price, bool isBooked, bool isMaintenance)
-    : id(id), type(type), price(price), isBooked(isBooked), isMaintenance(isMaintenance) {}
+    : id(id), type(type), price(price), isBooked(isBooked), isMaintenance(isMaintenance) {
+        //constructor initialiser list ke through maine Room bana diya
+    }
 
-void Room::loadRooms(vector<Room>& rooms) {
+void Room::loadRooms() {
+    // clears existing vector and fills it with fresh data from CSV
+    // aap ise cache refresh type samajhiye...
     rooms.clear();
-    ifstream file(ROOMS_FILE);
+    
+    ifstream file;
+    file.open(ROOMS_FILE);
+
     if (!file) {
         printRed("Cannot open " + ROOMS_FILE + "\n");
         pressEnterToContinue();
         return;
     }
+
     string line;
-    while (getline(file, line)) {
+    while (getline(file,line)) {
         stringstream ss(line);
         string idStr, type, priceStr, bookedStr, maintStr;
 
@@ -34,7 +47,7 @@ void Room::loadRooms(vector<Room>& rooms) {
         if (!getline(ss, priceStr, ',')) continue;
         if (!getline(ss, bookedStr, ',')) continue;
         if (!getline(ss, maintStr, ',')) continue;
-
+        // getline reads from stream passed as first param till delimiter (comma here) and stores in string passed as second param
         int id = stoi(idStr);
         double price = stod(priceStr);
         bool isBooked = (bookedStr == "1");
@@ -45,8 +58,11 @@ void Room::loadRooms(vector<Room>& rooms) {
     file.close();
 }
 
-void Room::saveRooms(const vector<Room>& rooms) {
-    ofstream file(ROOMS_FILE);
+void Room::saveRooms() {
+    //puri output file ko ham over write krrhe hain
+    ofstream file;
+    file.open(ROOMS_FILE);
+
     if (!file) {
         printRed("Cannot open " + ROOMS_FILE + " for writing\n");
         pressEnterToContinue();
@@ -59,7 +75,9 @@ void Room::saveRooms(const vector<Room>& rooms) {
     file.close();
 }
 
-void Room::updateBookingStatus(vector<Room>& rooms) {
+void Room::getBookingStatuses() {
+    // unbooks all (except maintenance) and rebooks from bookings.csv
+
     ifstream file(BOOKINGS_FILE);
     if (!file) {
         printRed("Cannot open " + BOOKINGS_FILE + "\n");
@@ -97,8 +115,7 @@ void Room::updateBookingStatus(vector<Room>& rooms) {
 }
 
 void Room::addRoom() {
-    vector<Room> rooms;
-    loadRooms(rooms);
+    loadRooms(); // == refresh karna important h yahan bhi ==
 
     int id;
     string type;
@@ -106,6 +123,8 @@ void Room::addRoom() {
 
     cout << "Enter new room ID (4-digits): ";
     cin >> id;
+    //stream.ignore function - classic - ah yes. 
+    // used here to tackle spaces - to flush leftover input (like spaces/newlines) before getline
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     if (roomExists(id)) {
@@ -122,16 +141,15 @@ void Room::addRoom() {
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     rooms.emplace_back(id, type, price, false, false);
-    saveRooms(rooms);
+    saveRooms();
 
     printGreen("Room added successfully.\n");
     pressEnterToContinue();
 }
 
 void Room::displayRooms() {
-    vector<Room> rooms;
-    loadRooms(rooms);
-    updateBookingStatus(rooms);
+    loadRooms(); // == fresh data load here bhi zaruri hai ==
+    getBookingStatuses();
 
     // Group rooms by type
     vector<string> roomTypes = {"Suite", "Single", "Double"};
@@ -183,10 +201,8 @@ void Room::displayRooms() {
 }
 
 
-
 bool Room::updateRoomStatus(int roomId, bool bookStatus) {
-    vector<Room> rooms;
-    loadRooms(rooms);
+    loadRooms(); // == work on latest data before modifying ==
 
     auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) { return r.id == roomId; });
     if (it == rooms.end()) {
@@ -202,22 +218,20 @@ bool Room::updateRoomStatus(int roomId, bool bookStatus) {
     }
 
     it->isBooked = bookStatus;
-    saveRooms(rooms);
+    saveRooms();
     return true;
 }
 
 bool Room::roomExists(int roomId) {
-    vector<Room> rooms;
-    loadRooms(rooms);
+    loadRooms(); // == cache clear, fresh load ==
 
     auto it = find_if(rooms.begin(), rooms.end(), [roomId](const Room& r) { return r.id == roomId; });
     return it != rooms.end();
 }
 
 vector<Room> Room::getAvailableRooms(const string& desiredType, const string& checkIn, const string& checkOut) {
-    vector<Room> rooms;
-    loadRooms(rooms);
-    updateBookingStatus(rooms);
+    loadRooms(); // == booking status ke pehle fresh room data load hoga ==
+    getBookingStatuses();
 
     vector<Room> available;
     for (const auto& room : rooms) {
@@ -229,9 +243,8 @@ vector<Room> Room::getAvailableRooms(const string& desiredType, const string& ch
 }
 
 void Room::manageMaintenance() {
-    vector<Room> rooms;
-    loadRooms(rooms);
-    updateBookingStatus(rooms);  // <<<<< Important: sync booking info here!
+    loadRooms(); // == aur yahan bhi fresh load zaruri hai ==
+    getBookingStatuses();  // <<<<< Important: sync booking info here!
 
     int id;
     cout << "Enter room ID to toggle maintenance status: ";
@@ -260,7 +273,6 @@ void Room::manageMaintenance() {
         printGreen("Room " + to_string(id) + " removed from maintenance.\n");
     }
 
-    saveRooms(rooms);
+    saveRooms();
     pressEnterToContinue();
 }
-

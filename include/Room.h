@@ -2,29 +2,43 @@
 #include <vector>
 #include <string>
 
-namespace std {
+using namespace std;
 
 class Room {
 public:
+    
+    // ==  Core Room Data ==
     int id;
-    std::string type;
+    string type;
     double price;
     bool isBooked;
     bool isMaintenance;
 
+    // == My Constructors == 
     Room();
-    Room(int id, const std::string& type, double price, bool isBooked = false, bool isMaintenance = false);
+    Room(int id, const string& type, double price, bool isBooked = false, bool isMaintenance = false);
 
-    static void loadRooms(std::vector<Room>& rooms);
-    static void saveRooms(const std::vector<Room>& rooms);
-    static void updateBookingStatus(std::vector<Room>& rooms);
-    static void addRoom();
-    static void displayRooms();
-    static bool updateRoomStatus(int roomId, bool bookStatus);
-    static bool roomExists(int roomId);
-    static std::vector<Room> getAvailableRooms(const std::string& desiredType, const std::string& checkIn, const std::string& checkOut);
-    static void manageMaintenance();
-    static bool isRoomUnderMaintenance(int roomId);
+    // === Room Data File I/O ===
+    // Load from CSV and  Save to CSV
+    static void loadRooms();           
+    static void saveRooms();          
+
+    // === Room Booking & Availability ===
+    static void getBookingStatuses(); // refresh isBooked flags from bookings.csv
+    static bool updateRoomStatus(int roomId, bool bookStatus); // manually change booking flag
+    static vector<Room> getAvailableRooms( // available room filter
+        const string& desiredType,
+        const string& checkIn,
+        const string& checkOut
+    );
+    
+    // === Admin Room Management ===
+    static void addRoom();            // Add a new room
+    static void displayRooms();       // Display all rooms
+    static void manageMaintenance();  // Toggle maintenance status
+    static bool roomExists(int roomId);                            
+    static bool isRoomUnderMaintenance(int roomId); // [UNUSED]
+
+private:
+    static vector<Room> rooms;  // private internal static storage
 };
-
-} // namespace std

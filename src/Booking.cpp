@@ -2,6 +2,7 @@
 #include "Room.h"
 #include "Utils.h"
 
+#include <algorithm>  
 #include <fstream>
 #include <vector>
 #include <string>
@@ -9,11 +10,13 @@
 
 using namespace std;
 
-vector<Booking> Booking::bookings; // static member definition
+// static member initialization
+vector<Booking> Booking::bookings;
 
-Booking::Booking(const string& bookingId, int roomId, const string& guestName,
-                 const string& checkIn, const string& checkOut)
-    : bookingId(bookingId), roomId(roomId), guestName(guestName), checkIn(checkIn), checkOut(checkOut) {}
+Booking::Booking(const string& bookingId, int roomId, const string& guestName,const string& checkIn, const string& checkOut)
+    : bookingId(bookingId), roomId(roomId), guestName(guestName), checkIn(checkIn), checkOut(checkOut) {
+        //constrcutor initialiser list ke thru maine booking object banaya
+    }
 
 // Helper to split CSV line
 static vector<string> splitCSVLine(const string& line) {
@@ -36,6 +39,9 @@ void Booking::loadBookings() {
     string line;
     while (getline(fin, line)) {
         if (line.empty()) continue;
+        
+        //tokenize kiya maine, kar toh waise bhi skte the like Room.cpp but okay 2 diff ways
+
         vector<string> tokens = splitCSVLine(line);
         if (tokens.size() != 5) continue; // basic validation
         try {
@@ -56,14 +62,18 @@ void Booking::saveBookings() {
     }
     fout.close();
 }
+
+// I tried to design normalisation jaha i would normalise room type input to my desired format 
+
 static string normalizeRoomType(const string& input) {
     if (input.empty()) return "";
+
     string result = input;
-    transform(result.begin(), result.end(), result.begin(), ::tolower);
-    result[0] = toupper(result[0]);
+    for (auto& c : result) c = tolower(c);  // make all lowercase
+    result[0] = toupper(result[0]);         // capitalize first letter
     return result;
 }
-#include <algorithm>  // Add this at the top of your Booking.cpp
+
 
 void Booking::bookRoom() {
     loadBookings();
@@ -104,11 +114,14 @@ void Booking::bookRoom() {
     printGreen("Enter Room Type to book (e.g., Single, Double, Suite): ");
     string roomType;
     getline(cin, roomType);
+    roomType = normalizeRoomType(roomType);  // normalizeD user input
+
     if (roomType.empty()) {
         printRed("Room type cannot be empty.\n");
         pressEnterToContinue();
         return;
     }
+
 
     vector<Room> availableRooms = Room::getAvailableRooms(roomType, checkIn, checkOut);
 
@@ -182,22 +195,26 @@ void Booking::displayBookings() {
         return;
     }
 
-    // Centered heading (assuming 65 character console width)
-    cout << "\n";
-    cout << string(22, ' ') << "Current Bookings" << "\n\n";
+    // Centered heading
+    cout << "\n" << string(22, ' ') << "Current Bookings\n\n";
 
-    cout << "BookingID  RoomID  Guest Name               Check-in    Check-out\n";
-    cout << "-----------------------------------------------------------------\n";
+    cout << left << setw(10) << "BookingID" << "  "
+         << setw(6) << "RoomID" << "  "
+         << setw(22) << "Guest Name" << "  "
+         << setw(10) << "Check-in" << "  "
+         << setw(10) << "Check-out" << "\n";
+         
+    cout << string(65, '-') << "\n";
 
     for (const auto& b : bookings) {
-        char line[100];
-        snprintf(line, sizeof(line), "%-10s  %-6d  %-22s  %-10s  %-10s",
-                 b.bookingId.c_str(),
-                 b.roomId,
-                 b.guestName.c_str(),
-                 b.checkIn.c_str(),
-                 b.checkOut.c_str());
-        printGreen(string(line) + "\n");
+        stringstream ss;
+        ss << left << setw(10) << b.bookingId << "  "
+           << setw(6) << b.roomId << "  "
+           << setw(22) << b.guestName << "  "
+           << setw(10) << b.checkIn << "  "
+           << setw(10) << b.checkOut;
+
+        printGreen(ss.str() + "\n");
     }
 
     pressEnterToContinue();
